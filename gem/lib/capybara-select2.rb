@@ -4,6 +4,10 @@ require 'rspec/core'
 
 module Capybara
   module Select2
+    def finished_all_ajax_requests?
+      page.evaluate_script('jQuery.active').zero?
+    end
+    
     def select2(value, xpath: nil, css: nil, from: nil, search: nil)
       select2_container = case
       when xpath
@@ -36,6 +40,7 @@ module Capybara
         body
           .find(".select2-container--open input.select2-search__field")
           .send_keys(value)
+        loop until finished_all_ajax_requests?
         ".select2-results"
       when find(:xpath, "//body").has_selector?(".select2-dropdown")
         # select2 version 4.0
