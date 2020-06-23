@@ -3,17 +3,19 @@ require 'capybara/selectors/tag_selector'
 require 'rspec/core'
 
 module Capybara
-  module Select2    
-    def select2(value, options = {})
-      raise "Must pass a hash containing 'from' or 'xpath' or 'css'" unless options.is_a?(Hash) and [:from, :xpath, :css].any? { |k| options.has_key? k }
-
-      if options.has_key? :xpath
-        select2_container = find(:xpath, options[:xpath])
-      elsif options.has_key? :css
-        select2_container = find(:css, options[:css])
+  module Select2
+    def select2(value, xpath: nil, css: nil, from: nil, search: nil)
+      select2_container = case
+      when xpath
+        find(:xpath, xpath)
+      when css
+        find(:css, css)
+      when from
+        find("label", text: from)
+          .find(:xpath, '..')
+          .find(".select2-container")
       else
-        select_name = options[:from]
-        select2_container = find("label", text: select_name).find(:xpath, '..').find(".select2-container")
+        raise ArgumentError, "None of xpath, css, nor from given"
       end
 
       # Open select2 field
@@ -29,28 +31,30 @@ module Capybara
       body = find(:xpath, "//body")
 
       # Enter into the search box.
-      if options.key? :search
+      drop_container = case
+      when search
         body
           .find(".select2-container--open input.select2-search__field")
           .send_keys(value)
-        drop_container = ".select2-results"
-      elsif find(:xpath, "//body").has_selector?(".select2-dropdown")
+        ".select2-results"
+      when find(:xpath, "//body").has_selector?(".select2-dropdown")
         # select2 version 4.0
-        drop_container = ".select2-dropdown"
+        ".select2-dropdown"
       else
-        drop_container = ".select2-drop"
+        ".select2-drop"
       end
 
-      [value].flatten.each do |value|
-        if body.has_selector?("#{drop_container} li.select2-results__option")
+      [value].flatten.each do |val|
+        results_selector = if body.has_selector?("#{drop_container} li.select2-results__option")
           # select2 version 4.0
-          body
-            .find("#{drop_container} li.select2-results__option", text: value)
-            .click
+          "li.select2-results__option"
         else
-          body
-            .find("#{drop_container} li.select2-result-selectable", text: value).click
+          "li.select2-result-selectable"
         end
+        
+        body
+          .find("#{drop_container} #{results_selector}", text: value)
+          .click
       end
     end
   end
