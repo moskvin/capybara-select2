@@ -8,7 +8,7 @@ module Capybara
       page.evaluate_script('jQuery.active').zero?
     end
     
-    def select2(value, xpath: nil, css: nil, from: nil, search: nil)
+    def select2(value, xpath: nil, css: nil, from: nil, search: nil, case_insensitive: false)
       select2_container = case
       when xpath
         find(:xpath, xpath)
@@ -57,8 +57,9 @@ module Capybara
           "li.select2-result-selectable"
         end
         
+        text = case_insensitive ? /#{val}/i : val
         body
-          .find("#{drop_container} #{results_selector}", text: value)
+          .find("#{drop_container} #{results_selector}", text: text)
           .click
       end
     end
