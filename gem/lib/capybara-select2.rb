@@ -3,7 +3,7 @@ require 'capybara/selectors/tag_selector'
 require 'rspec/core'
 
 module Capybara
-  module Select2
+  module Select2    
     def select2(value, options = {})
       raise "Must pass a hash containing 'from' or 'xpath' or 'css'" unless options.is_a?(Hash) and [:from, :xpath, :css].any? { |k| options.has_key? k }
 
@@ -26,9 +26,13 @@ module Capybara
         select2_container.find(".select2-choices").click
       end
 
-      if options.has_key? :search
-        find(:xpath, "//body").find(".select2-container--open input.select2-search__field").set(value)
-        page.execute_script(%|$(".select2-container--open  input.select2-search__field:visible").keyup();|)
+      body = find(:xpath, "//body")
+
+      # Enter into the search box.
+      if options.key? :search
+        body
+          .find(".select2-container--open input.select2-search__field")
+          .send_keys(value)
         drop_container = ".select2-results"
       elsif find(:xpath, "//body").has_selector?(".select2-dropdown")
         # select2 version 4.0
@@ -38,11 +42,14 @@ module Capybara
       end
 
       [value].flatten.each do |value|
-        if find(:xpath, "//body").has_selector?("#{drop_container} li.select2-results__option")
+        if body.has_selector?("#{drop_container} li.select2-results__option")
           # select2 version 4.0
-          find(:xpath, "//body").find("#{drop_container} li.select2-results__option", text: value).click
+          body
+            .find("#{drop_container} li.select2-results__option", text: value)
+            .click
         else
-          find(:xpath, "//body").find("#{drop_container} li.select2-result-selectable", text: value).click
+          body
+            .find("#{drop_container} li.select2-result-selectable", text: value).click
         end
       end
     end
