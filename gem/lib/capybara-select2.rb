@@ -8,18 +8,64 @@ module Capybara
       find(:xpath, "//body").has_selector?(".loading_results")
     end
     
-    def select2(value, xpath: nil, css: nil, from: nil, search: nil, case_insensitive: false)
+    # Fill in a select2 filter and return the options.
+    #
+    # @param value
+    # @param xpath
+    # @param css
+    # @param from
+    # @param field
+    # @param search [Boolean]
+    # @return [Array] the filtered options
+    def select2_filter(value, **args)
+      return _select2(value, **args)
+    end
+    
+    # Fill in a select2 field and select the value.
+    #
+    # @param value
+    # @param xpath
+    # @param css
+    # @param from
+    # @param field
+    # @param case_insensitive [Boolean]
+    # @param search [Boolean]
+    # @raise [Capybara::ElementNotFound]
+    # @raise [Capybara::Ambiguous]
+    def select2(value, case_insensitive: false, **args)
+      results = _select2(value, **args)
+      
+      text = case_insensitive ? /#{value}/i : value
+      matches = results.select { |r| text === r.text }
+      
+      case matches.size
+      when 0
+        raise Capybara::ElementNotFound, "Unable to find a matching option for #{value}"
+      when 1
+        matches.first.click        
+      else
+        raise Capybara::Ambiguous, "Ambiguous match, found #{results.size} options for #{value}"
+      end
+    end
+
+    private def _select2(
+      value, xpath: nil, css: nil, from: nil, field: nil, search: nil
+    )
       select2_container = case
       when xpath
         find(:xpath, xpath)
       when css
         find(:css, css)
+      when field
+        find(%{label[for="q_#{field}"]})
+          .find(:xpath, '..')
+          .find(".select2-container")
       when from
         find("label", text: from)
           .find(:xpath, '..')
           .find(".select2-container")
       else
-        raise ArgumentError, "None of xpath, css, nor from given"
+        raise ArgumentError, "None of xpath, css, field, nor from given"
       end
 
       # Open select2 field
@@ -47,19 +93,14 @@ module Capybara
         ".select2-drop"
       end
 
-      [value].flatten.each do |val|
-        results_selector = if body.has_selector?("#{drop_container} li.select2-results__option")
-          # select2 version 4.0
-          "li.select2-results__option"
-        else
-          "li.select2-result-selectable"
-        end
-        
-        text = case_insensitive ? /#{val}/i : val
-        body
-          .find("#{drop_container} #{results_selector}", text: text)
-          .click
+      results_selector = if find(:xpath, "//body").has_selector?("#{drop_container} li.select2-results__option")
+        # select2 version 4.0
+        "li.select2-results__option"
+      else
+        "li.select2-result-selectable"
       end
+        
+      return find(:xpath, "//body").find_all("#{drop_container} #{results_selector}")
     end
   end
 end
