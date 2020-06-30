@@ -57,7 +57,7 @@ module Capybara
       when css
         find(:css, css)
       when field
-        find(%{label[for="q_#{field}"]})
+        find(%{label[for="#{field}"]})
           .find(:xpath, '..')
           .find(".select2-container")
       when from
