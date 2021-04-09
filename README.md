@@ -67,6 +67,18 @@ If select2 field has [tags](http://ivaynberg.github.io/select2/#tags) option you
 select2_tag('value', from: 'Label of input')
 ```
 
+If you want to have a delay between opening dropbox and select an element from a list please use `sleep:`
+
+``` ruby
+select2('Item 1', from: 'Items', sleep: 0.1)
+```
+
+If you are not sure about the full-text comparison, you can use `case_insensitive:`
+
+``` ruby
+select2('body', from: "Begin\nBODY\nEnd", case_insensitive: true)
+```
+
 ## Contributing
 
 1. Fork it

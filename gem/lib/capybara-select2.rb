@@ -1,39 +1,23 @@
-require "capybara-select2/version"
+require 'capybara-select2/version'
 require 'capybara/selectors/tag_selector'
 require 'rspec/core'
 
 module Capybara
   module Select2
-    private def loading_results?
-      find(:xpath, "//body").has_selector?(".loading_results")
-    end
-    
+
     # Fill in a select2 filter and return the options.
-    #
-    # @param value
-    # @param xpath
-    # @param css
-    # @param from
-    # @param field
-    # @param search [Boolean]
     # @return [Array] the filtered options
     def select2_filter(value, **args)
-      return _select2(value, **args)
+      find_select2(value, **args)
     end
     
     # Fill in a select2 field and select the value.
-    #
-    # @param value
-    # @param xpath
-    # @param css
-    # @param from
-    # @param field
+    # @param value [String]
     # @param case_insensitive [Boolean]
-    # @param search [Boolean]
     # @raise [Capybara::ElementNotFound]
     # @raise [Capybara::Ambiguous]
     def select2(value, case_insensitive: false, **args)
-      results = _select2(value, **args)
+      results = find_select2(value, **args)
       
       text = case_insensitive ? /#{value}/i : value
       matches = results.select { |r| text === r.text }
@@ -48,59 +32,63 @@ module Capybara
       end
     end
 
-    private def _select2(
-      value, xpath: nil, css: nil, from: nil, field: nil, search: nil
-    )
+    private
+
+    # Finds an opened select2 field
+    # @param xpath [String]
+    # @param css [String]
+    # @param from [String]
+    # @param field [String]
+    # @param search [Boolean]
+    # @param sleep [Float]
+    def find_select2(value, xpath: nil, css: nil, from: nil, field: nil, search: nil, sleep: nil)
       select2_container = case
-      when xpath
-        find(:xpath, xpath)
-      when css
-        find(:css, css)
-      when field
-        find(%{label[for="#{field}"]})
-          .find(:xpath, '..')
-          .find(".select2-container")
-      when from
-        find("label", text: from)
-          .find(:xpath, '..')
-          .find(".select2-container")
-      else
-        raise ArgumentError, "None of xpath, css, field, nor from given"
-      end
+                          when xpath
+                            find(:xpath, xpath)
+                          when css
+                            find(:css, css)
+                          when field
+                            find(%{label[for="#{field}"]}).find(:xpath, '..').find('.select2-container')
+                          when from
+                            find('label', text: from).find(:xpath, '..').find('.select2-container')
+                          else
+                            raise ArgumentError, 'None of xpath, css, field, nor from given'
+                          end
 
       # Open select2 field
-      if select2_container.has_selector?(".select2-selection")
-        # select2 version 4.0
-        select2_container.find(".select2-selection").click
-      elsif select2_container.has_selector?(".select2-choice")
-        select2_container.find(".select2-choice").click
+      if select2_container.has_selector?('.select2-selection') # select2 version 4.0
+        select2_container.find('.select2-selection').click
+      elsif select2_container.has_selector?('.select2-choice')
+        select2_container.find('.select2-choice').click
       else
-        select2_container.find(".select2-choices").click
+        select2_container.find('.select2-choices').click
       end
 
       # Enter into the search box.
       drop_container = case
-      when search
-        find(:xpath, "//body")
-          .find(".select2-container--open input.select2-search__field")
-          .send_keys(value)
-        loop while loading_results?
-        ".select2-results"
-      when find(:xpath, "//body").has_selector?(".select2-dropdown")
-        # select2 version 4.0
-        ".select2-dropdown"
-      else
-        ".select2-drop"
-      end
+                       when search
+                         find(:xpath, '//body')
+                           .find('.select2-container--open input.select2-search__field')
+                           .send_keys(value)
+                         loop while loading_results?
+                         '.select2-results'
+                       when find(:xpath, '//body').has_selector?('.select2-dropdown') # select2 version 4.0
+                         '.select2-dropdown'
+                       else
+                         '.select2-drop'
+                       end
 
-      results_selector = if find(:xpath, "//body").has_selector?("#{drop_container} li.select2-results__option")
-        # select2 version 4.0
-        "li.select2-results__option"
-      else
-        "li.select2-result-selectable"
-      end
-        
-      return find(:xpath, "//body").find_all("#{drop_container} #{results_selector}")
+      results_selector = if find(:xpath, "//body").has_selector?("#{drop_container} li.select2-results__option") # select2 version 4.0
+                           'li.select2-results__option'
+                         else
+                           'li.select2-result-selectable'
+                         end
+      sleep(sleep) if sleep.present?
+      find(:xpath, '//body').find_all("#{drop_container} #{results_selector}")
+    end
+
+    def loading_results?
+      find(:xpath, '//body').has_selector?('.loading_results')
     end
   end
 end
