@@ -21,7 +21,7 @@ module Capybara
       results = find_select2(value, **args)
 
       text = case_insensitive ? /#{value}/i : value
-      matches = results.select { |r| text === r.text }
+      matches = results.select { |r| text == r.text }
 
       case matches.size
       when 0
@@ -35,27 +35,21 @@ module Capybara
 
     private
 
-    # Finds an opened select2 field
-    # @param xpath [String]
-    # @param css [String]
-    # @param from [String]
-    # @param field [String]
-    # @param search [Boolean]
-    # @param sleep [Float]
-    def find_select2(value, xpath: nil, css: nil, from: nil, field: nil, search: nil, sleep: nil, expect_elements: nil)
-      select2_container = if xpath
-                            find(:xpath, xpath)
-                          elsif css
-                            find(:css, css)
-                          elsif field
-                            find(%(label[for="#{field}"])).find(:xpath, '..').find('.select2-container')
-                          elsif from
-                            find('label', text: from).find(:xpath, '..').find('.select2-container')
-                          else
-                            raise ArgumentError, 'None of xpath, css, field, nor from given'
-                          end
+    def find_select2_container(**args)
+      if args[:xpath]
+        find(:xpath, args[:xpath])
+      elsif args[:css]
+        find(:css, args[:css])
+      elsif args[:field]
+        find(%(label[for="#{args[:field]}"])).find(:xpath, '..').find('.select2-container')
+      elsif args[:from]
+        find('label', text: args[:from]).find(:xpath, '..').find('.select2-container')
+      else
+        raise ArgumentError, 'None of xpath, css, field, nor from given'
+      end
+    end
 
-      # Open select2 field
+    def open_select2(select2_container)
       if select2_container.has_selector?('.select2-selection') # select2 version 4.0
         select2_container.find('.select2-selection').click
       elsif select2_container.has_selector?('.select2-choice')
@@ -63,9 +57,23 @@ module Capybara
       else
         select2_container.find('.select2-choices').click
       end
+    end
 
-      # Enter into the search box.
-      drop_container = if search
+    # Finds an opened select2 field
+    # @param args:
+    #   xpath [String]
+    #   css [String]
+    #   from [String]
+    #   field [String]
+    #   search [Boolean]
+    #   sleep [Float]
+    #   expect_elements [Integer]
+    def find_select2(value, **args)
+      select2_container = find_select2_container(**args)
+      open_select2(select2_container)
+
+      # # Enter into the search box.
+      drop_container = if args[:search]
                          find(:xpath, '//body')
                            .find('.select2-container--open input.select2-search__field')
                            .send_keys(value)
@@ -82,12 +90,13 @@ module Capybara
                          else
                            'li.select2-result-selectable'
                          end
-      sleep(sleep) unless sleep.nil?
-      unless expect_elements.nil?
-        expect(page).to have_css("#{drop_container} #{results_selector}",
-                                 text: /#{value}/,
-                                 count: expect_elements)
+      sleep(args[:sleep]) unless args[:sleep].nil?
+      unless args[:expect_elements].nil?
+        expect(find(:xpath, '//body')).to have_css(results_selector,
+                                                   text: /#{value}/,
+                                                   count: args[:expect_elements])
       end
+
       find(:xpath, '//body').find_all("#{drop_container} #{results_selector}")
     end
 
