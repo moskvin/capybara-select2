@@ -85,7 +85,7 @@ module Capybara
       sleep(sleep) unless sleep.nil?
       unless expect_elements.nil?
         expect(page).to have_css("#{drop_container} #{results_selector}",
-                                 text: value,
+                                 text: /#{value}/,
                                  count: expect_elements)
       end
       find(:xpath, '//body').find_all("#{drop_container} #{results_selector}")
