@@ -82,9 +82,10 @@ module Capybara
                          else
                            'li.select2-result-selectable'
                          end
-      sleep(sleep) if sleep.present?
-      if expect_elements.present?
+      sleep(sleep) unless sleep.nil?
+      unless expect_elements.nil?
         expect(page).to have_css("#{drop_container} #{results_selector}",
+                                 text: value,
                                  count: expect_elements)
       end
       find(:xpath, '//body').find_all("#{drop_container} #{results_selector}")
