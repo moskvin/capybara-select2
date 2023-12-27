@@ -93,7 +93,7 @@ module Capybara
       sleep(args[:sleep]) unless args[:sleep].nil?
       unless args[:expect_elements].nil?
         expect(find(:xpath, '//body')).to have_css(results_selector,
-                                                   text: /#{value}/,
+                                                   text: /#{Regexp.escape(value)}/,
                                                    count: args[:expect_elements])
       end
 
