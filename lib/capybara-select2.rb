@@ -20,8 +20,8 @@ module Capybara
     def select2(value, case_insensitive: false, **args)
       results = find_select2(value, **args)
 
-      text = case_insensitive ? /#{value}/i : value
-      matches = results.select { |r| text == r.text }
+      text = case_insensitive ? /#{Regexp.escape(value)}/i : value
+      matches = results.select { |r| r.text.match?(text) }
 
       case matches.size
       when 0
