@@ -8,10 +8,9 @@ module Capybara
   module Select2
     # Fill in a select2 filter and return the options.
     # @return [Array] the filtered options
-    def select2_filter(value, **args)
-      locator = find_select2_locator(value, **args)
-      sleep(args[:sleep]) unless args[:sleep].nil?
-      find(:xpath, '//body').find_all(locator.join(' '))
+    def select2_filter(value, wait: nil, **args)
+      locator = find_select2_and_open(value, **args)
+      fetch_options(value, locator:, wait:, max_retries:).find_all(locator.join(' '))
     end
 
     # Fill in a select2 field and select the value.
@@ -20,7 +19,7 @@ module Capybara
     # @param wait [Float]
     # @raise [Capybara::ElementNotFound]
     # @raise [Capybara::Ambiguous]
-    def select2(value, mode: :exact_text, wait: nil, **args)
+    def select2(value, mode: :exact_text, wait: nil, max_retries: 3, **args)
       text = case mode
              when :insensitive
                value.is_a?(Regexp) ? value : /#{Regexp.escape(value)}/
@@ -29,18 +28,14 @@ module Capybara
              else
                value
              end
-      locator = find_select2_locator(value, **args)
-      sleep(wait) unless wait.nil?
-      body = find(:xpath, '//body')
+      locator = find_select2_and_open(value, **args)
+      body = fetch_options(value, locator:, wait:, max_retries:)
       if mode == :exact_text
-        expect(body).to have_css(locator.last,
-                                 exact_text: text,
-                                 count: args[:expect_elements])
+        expect(body).to have_css(locator.last, exact_text: text)
       else
-        expect(body).to have_css(locator.last,
-                                 text:,
-                                 count: 1)
+        expect(body).to have_css(locator.last, text:, count: 1)
       end
+      warn 5
       results = body.find_all(locator.join(' '))
       matches = results.select { |r| mode == :exact_text ? r.text == text : r.text.match?(text) }
 
@@ -55,6 +50,28 @@ module Capybara
     end
 
     private
+
+    def fetch_options(value, locator:, wait:, max_retries:)
+      sleep(wait) unless wait.nil?
+      body = find(:xpath, '//body')
+      retries = 0
+
+      begin
+        if body.has_selector?('.loading_results',
+                              wait: 0) && body.has_css?(locator.last, exact_text: 'Searching…', count: 1, wait: 0)
+          sleep(wait.nil? ? 0.1 : wait)
+          retries += 1
+          if retries < max_retries
+            raise Capybara::ElementNotFound,
+                  "Retry to find a matching option for #{value} attempt: #{retries}"
+          end
+        end
+      rescue StandardError => e
+        warn e.message
+        retry
+      end
+      find(:xpath, '//body')
+    end
 
     def find_select2_container(**args)
       if args[:xpath]
@@ -89,11 +106,11 @@ module Capybara
     #   search [Boolean]
     #   sleep [Float]
     #   expect_elements [Integer]
-    def find_select2_locator(value, **args)
+    def find_select2_and_open(value, **args)
       select2_container = find_select2_container(**args)
       open_select2(select2_container)
 
-      # # Enter into the search box.
+      # Enter into the search box.
       drop_container = if args[:search]
                          find(:xpath, '//body')
                            .find('.select2-container--open input.select2-search__field')
@@ -115,7 +132,7 @@ module Capybara
     end
 
     def loading_results?
-      find(:xpath, '//body').has_selector?('.loading_results')
+      find(:xpath, '//body').has_selector?('.loading-results')
     end
   end
 end
