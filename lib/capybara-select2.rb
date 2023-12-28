@@ -9,19 +9,33 @@ module Capybara
     # Fill in a select2 filter and return the options.
     # @return [Array] the filtered options
     def select2_filter(value, **args)
-      find_select2(value, **args)
+      locator = find_select2_locator(value, **args)
+      sleep(args[:sleep]) unless args[:sleep].nil?
+      find(:xpath, '//body').find_all(locator.join(' '))
     end
 
     # Fill in a select2 field and select the value.
     # @param value [String]
-    # @param case_insensitive [Boolean]
+    # @param insensitive [Boolean]
+    # @param wait [Float]
     # @raise [Capybara::ElementNotFound]
     # @raise [Capybara::Ambiguous]
-    def select2(value, case_insensitive: false, **args)
-      results = find_select2(value, **args)
-
-      text = case_insensitive ? /#{Regexp.escape(value)}/i : value
-      matches = results.select { |r| r.text.match?(text) }
+    def select2(value, insensitive: false, wait: nil, **args)
+      text = insensitive ? /#{Regexp.escape(value)}/ : value
+      locator = find_select2_locator(value, **args)
+      sleep(wait) unless wait.nil?
+      body = find(:xpath, '//body')
+      if args[:exact_text]
+        expect(body).to have_css(locator.last,
+                                 exact_text: text,
+                                 count: args[:expect_elements])
+      else
+        expect(body).to have_css(locator.last,
+                                 text:,
+                                 count: 1)
+      end
+      results = body.find_all(locator.join(' '))
+      matches = results.select { |r| insensitive ? r.text.match?(text) : r.text == text }
 
       case matches.size
       when 0
@@ -68,7 +82,7 @@ module Capybara
     #   search [Boolean]
     #   sleep [Float]
     #   expect_elements [Integer]
-    def find_select2(value, **args)
+    def find_select2_locator(value, **args)
       select2_container = find_select2_container(**args)
       open_select2(select2_container)
 
@@ -90,14 +104,7 @@ module Capybara
                          else
                            'li.select2-result-selectable'
                          end
-      sleep(args[:sleep]) unless args[:sleep].nil?
-      unless args[:expect_elements].nil?
-        expect(find(:xpath, '//body')).to have_css(results_selector,
-                                                   text: /#{Regexp.escape(value)}/,
-                                                   count: args[:expect_elements])
-      end
-
-      find(:xpath, '//body').find_all("#{drop_container} #{results_selector}")
+      [drop_container, results_selector]
     end
 
     def loading_results?
