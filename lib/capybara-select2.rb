@@ -16,16 +16,23 @@ module Capybara
 
     # Fill in a select2 field and select the value.
     # @param value [String]
-    # @param insensitive [Boolean]
+    # @param mode [Symbol] - insensitive, case_insensitive or exact_text
     # @param wait [Float]
     # @raise [Capybara::ElementNotFound]
     # @raise [Capybara::Ambiguous]
-    def select2(value, insensitive: false, wait: nil, **args)
-      text = insensitive ? /#{Regexp.escape(value)}/ : value
+    def select2(value, mode: :exact_text, wait: nil, **args)
+      text = case mode
+             when :insensitive
+               value.is_a?(Regexp) ? value : /#{Regexp.escape(value)}/
+             when :case_insensitive
+               /#{Regexp.escape(value)}/i
+             else
+               value
+             end
       locator = find_select2_locator(value, **args)
       sleep(wait) unless wait.nil?
       body = find(:xpath, '//body')
-      if args[:exact_text]
+      if mode == :exact_text
         expect(body).to have_css(locator.last,
                                  exact_text: text,
                                  count: args[:expect_elements])
@@ -35,7 +42,7 @@ module Capybara
                                  count: 1)
       end
       results = body.find_all(locator.join(' '))
-      matches = results.select { |r| insensitive ? r.text.match?(text) : r.text == text }
+      matches = results.select { |r| mode == :exact_text ? r.text == text : r.text.match?(text) }
 
       case matches.size
       when 0
