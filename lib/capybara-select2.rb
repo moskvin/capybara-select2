@@ -35,7 +35,7 @@ module Capybara
       else
         expect(body).to have_css(locator.last, text:, count: 1)
       end
-      warn 5
+
       results = body.find_all(locator.join(' '))
       matches = results.select { |r| mode == :exact_text ? r.text == text : r.text.match?(text) }
 
