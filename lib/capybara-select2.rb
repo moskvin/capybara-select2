@@ -8,7 +8,7 @@ module Capybara
   module Select2
     # Fill in a select2 filter and return the options.
     # @return [Array] the filtered options
-    def select2_filter(value, wait: nil, **args)
+    def select2_filter(value, wait: nil, max_retries: 3, **args)
       locator = find_select2_and_open(value, **args)
       fetch_options(value, locator:, wait:, max_retries:).find_all(locator.join(' '))
     end
