@@ -54,7 +54,7 @@ module Capybara
     private
 
     def fetch_options(text, locator:, **args)
-      max_retries = args[:max_retries] || 3
+      max_retries = args[:max_retries] || 5
       sleep(args[:wait]) unless args[:wait].nil?
       await_select2_option(text, locator:, max_retries:, mode: args[:mode]) if args[:await_option]
       body = find(:xpath, '//body')
@@ -67,7 +67,7 @@ module Capybara
           retries += 1
           if retries < max_retries
             raise Capybara::ElementNotFound,
-                  "Retry to find a matching option for #{text} attempt: #{retries}"
+                  "Retry to find a matching option for #{text} attempt: #{retries} (Searching...)"
           end
         end
       rescue StandardError => e
@@ -80,22 +80,24 @@ module Capybara
     def await_select2_option(text, locator:, mode:, max_retries:)
       body = find(:xpath, '//body')
       retries = 0
-      options = if mode == :exact_text
-                  { exact_text: text }
-                else
-                  { text:, count: 1 }
-                end
-      unless body.has_css?(locator.last, wait: 0, **options)
-        sleep(0.25)
-        retries += 1
-        if retries < max_retries
-          raise Capybara::ElementNotFound,
-                "Retry to find a matching option for #{text}, mode: #{mode}, attempt: #{retries}/#{max_retries}"
+      begin
+        options = if mode == :exact_text
+                    { exact_text: text }
+                  else
+                    { text:, count: 1 }
+                  end
+        unless body.has_css?(locator.last, wait: 0, **options)
+          sleep(0.3)
+          retries += 1
+          if retries < max_retries
+            raise Capybara::ElementNotFound,
+                  "Retry to find a matching option for #{text}, mode: #{mode}, attempt: #{retries}/#{max_retries}"
+          end
         end
+      rescue StandardError => e
+        warn e.message
+        retry
       end
-    rescue StandardError => e
-      warn e.message
-      retry
     end
 
     def find_select2_container(**args)
