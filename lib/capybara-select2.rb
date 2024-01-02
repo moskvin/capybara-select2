@@ -71,7 +71,7 @@ module Capybara
           end
         end
       rescue StandardError => e
-        warn e.message
+        Selenium::WebDriver.logger.warn(e.message)
         retry
       end
       body
@@ -95,7 +95,7 @@ module Capybara
           end
         end
       rescue StandardError => e
-        warn e.message
+        Selenium::WebDriver.logger.warn(e.message)
         retry
       end
     end
