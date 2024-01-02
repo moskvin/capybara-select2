@@ -72,7 +72,7 @@ module Capybara
           end
         end
       rescue StandardError => e
-        Selenium::WebDriver.logger.warn(e.message)
+        logger.warn(e.message)
         retry
       end
       body
@@ -96,7 +96,7 @@ module Capybara
           end
         end
       rescue StandardError => e
-        Selenium::WebDriver.logger.warn(e.message)
+        logger.warn(e.message)
         retry
       end
     end
@@ -161,6 +161,10 @@ module Capybara
 
     def loading_results?
       find(:xpath, '//body').has_selector?('.loading-results')
+    end
+
+    def logger
+      ::Selenium::WebDriver.logger
     end
   end
 end
