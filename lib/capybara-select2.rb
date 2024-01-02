@@ -3,6 +3,7 @@
 require 'capybara-select2/version'
 require 'capybara/selectors/tag_selector'
 require 'rspec/core'
+require 'selenium/webdriver'
 
 module Capybara
   module Select2
