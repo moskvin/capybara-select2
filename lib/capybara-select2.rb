@@ -87,7 +87,7 @@ module Capybara
                   else
                     { text:, count: 1 }
                   end
-        unless body.has_css?(locator.last, wait: 0, **options)
+        unless body.has_css?(locator.last, wait: (retries / 10.0), **options)
           sleep(0.3)
           retries += 1
           if retries < max_retries
