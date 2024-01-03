@@ -66,7 +66,7 @@ module Capybara
                               wait: 0) && body.has_css?(locator.last, exact_text: 'Searching…', count: 1, wait: 0)
           sleep(args[:wait].nil? ? 0.1 : args[:wait])
           retries += 1
-          if retries < max_retries
+          if retries <= max_retries
             raise Capybara::ElementNotFound,
                   "Retry to find a matching option for #{text} attempt: #{retries} (Searching...)"
           end
@@ -90,7 +90,7 @@ module Capybara
         unless body.has_css?(locator.last, wait: (retries / 10.0), **options)
           sleep(0.3)
           retries += 1
-          if retries < max_retries
+          if retries <= max_retries
             raise Capybara::ElementNotFound,
                   "Retry to find a matching option for #{text}, mode: #{mode}, attempt: #{retries}/#{max_retries}"
           end
