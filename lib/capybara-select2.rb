@@ -35,8 +35,8 @@ module Capybara
     # Fill in a select2 filter and return the options.
     # @return [Array] the filtered options
     def select2_filter(value, **args)
-      markup = find_select2_and_open(value, **args)
-      fetch_options(value, markup:, **args).find_all(option_selector(markup))
+      markup = select2_find_and_open(value, **args)
+      select2_fetch_options(value, markup:, **args).find_all(select2_option_selector(markup))
     end
 
     # Fill in a select2 field and select the value.
@@ -52,19 +52,22 @@ module Capybara
     # @raise [Capybara::Ambiguous]
     # @raise [Capybara::ExpectationNotMet] when the dropdown does not open
     def select2(value, **args)
-      text = match_text(value, args[:mode])
-      exact_text = exact_text?(args[:mode])
+      text = select2_match_text(value, args[:mode])
+      exact_text = select2_exact_text?(args[:mode])
       option = exact_text ? { exact_text: text } : { text:, count: 1 }
-      markup = open_with_option(value, text, option, **args)
-      expect(select2_body).to have_css(option_selector(markup), wait: 0, **option)
+      markup = select2_open_with_option(value, text, option, **args)
+      expect(select2_body).to have_css(select2_option_selector(markup), wait: 0, **option)
 
-      pick_option(value, text, exact_text, markup)
+      select2_pick_option(value, text, exact_text, markup)
     end
 
     private
 
-    def pick_option(value, text, exact_text, markup)
-      matches = select2_body.find_all(option_selector(markup)).select do |result|
+    # Private helpers are prefixed with select2_: they are mixed into every example, so a spec helper with the same
+    # name would otherwise replace them.
+
+    def select2_pick_option(value, text, exact_text, markup)
+      matches = select2_body.find_all(select2_option_selector(markup)).select do |result|
         exact_text ? result.text == text : result.text.match?(text)
       end
 
@@ -78,11 +81,11 @@ module Capybara
       end
     end
 
-    def monotonic_now
+    def select2_monotonic_now
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
-    def match_text(value, mode)
+    def select2_match_text(value, mode)
       case mode
       when :insensitive
         value.is_a?(Regexp) ? value : /#{Regexp.escape(value)}/
@@ -93,37 +96,37 @@ module Capybara
       end
     end
 
-    def exact_text?(mode)
+    def select2_exact_text?(mode)
       mode.nil? || mode == :exact_text
     end
 
     # Opens the dropdown and waits for the option. A dropdown that closes before the option is listed (the field
     # re-rendered, as a lookup updating a form does) is opened again; one that stays open without it is left to
     # select2's expectation to report.
-    def open_with_option(value, text, option, **args)
+    def select2_open_with_option(value, text, option, **args)
       OPEN_ATTEMPTS.times do
-        markup = find_select2_and_open(value, **args)
-        fetch_options(text, markup:, **args)
-        return markup if option_listed_or_open?(markup, option)
+        markup = select2_find_and_open(value, **args)
+        select2_fetch_options(text, markup:, **args)
+        return markup if select2_option_listed_or_open?(markup, option)
       end
       raise Capybara::ExpectationNotMet, "select2 dropdown closed before listing #{value} #{OPEN_ATTEMPTS} times"
     end
 
     # true once the option is listed, or when default_max_wait_time passes with the dropdown still open;
     # false as soon as the dropdown closes.
-    def option_listed_or_open?(markup, option)
-      deadline = monotonic_now + Capybara.default_max_wait_time
+    def select2_option_listed_or_open?(markup, option)
+      deadline = select2_monotonic_now + Capybara.default_max_wait_time
       body = select2_body
       loop do
-        return true if body.has_css?(option_selector(markup), wait: 0, **option)
+        return true if body.has_css?(select2_option_selector(markup), wait: 0, **option)
         return false unless body.has_selector?(markup[:dropdown], wait: 0)
-        return true if monotonic_now >= deadline
+        return true if select2_monotonic_now >= deadline
 
         sleep(0.05)
       end
     end
 
-    def option_selector(markup)
+    def select2_option_selector(markup)
       "#{markup[:dropdown]} #{markup[:option]}"
     end
 
@@ -131,51 +134,64 @@ module Capybara
       find(:xpath, '//body')
     end
 
-    def fetch_options(text, markup:, **args)
+    def select2_fetch_options(text, markup:, **args)
       sleep(args[:wait]) unless args[:wait].nil?
       if args[:await_option]
-        await_select2_option(text, markup:, max_retries: args[:max_retries] || 5, mode: args[:mode])
+        select2_await_option(text, markup:, max_retries: args[:max_retries] || 5, mode: args[:mode])
       end
-      await_loaded(markup)
+      select2_await_loaded(markup)
       select2_body
     end
 
     # Polls with a growing wait until the option is listed; select2 then fails with Capybara's own message.
-    def await_select2_option(text, markup:, mode:, max_retries:)
-      options = exact_text?(mode) ? { exact_text: text } : { text:, count: 1 }
+    def select2_await_option(text, markup:, mode:, max_retries:)
+      options = select2_exact_text?(mode) ? { exact_text: text } : { text:, count: 1 }
       (max_retries + 1).times do |attempt|
-        break if select2_body.has_css?(option_selector(markup), wait: attempt / 10.0, **options)
+        break if select2_body.has_css?(select2_option_selector(markup), wait: attempt / 10.0, **options)
 
         sleep(0.3)
-        logger.warn("Retry to find a matching option for #{text}, mode: #{mode}, " \
-                    "attempt: #{attempt + 1}/#{max_retries}")
+        select2_logger.warn("Retry to find a matching option for #{text}, mode: #{mode}, " \
+                            "attempt: #{attempt + 1}/#{max_retries}")
       end
     end
 
     # Waits, up to default_max_wait_time, while the dropdown shows "Searching…".
-    def await_loaded(markup)
-      deadline = monotonic_now + Capybara.default_max_wait_time
+    def select2_await_loaded(markup)
+      deadline = select2_monotonic_now + Capybara.default_max_wait_time
       loading = "#{markup[:dropdown]} #{markup[:loading]}"
-      sleep(0.05) while select2_body.has_selector?(loading, wait: 0) && monotonic_now < deadline
+      sleep(0.05) while select2_body.has_selector?(loading, wait: 0) && select2_monotonic_now < deadline
     end
 
-    def find_select2_container(**args)
+    def select2_find_container(**args)
       if args[:xpath]
-        find(:xpath, args[:xpath])
+        select2_container_in(find(:xpath, args[:xpath]))
       elsif args[:css]
-        find(:css, args[:css])
-      elsif args[:field]
-        container_next_to(find(%(label[for="#{args[:field]}"])))
+        select2_container_in(find(:css, args[:css]))
+      else
+        select2_container_next_to(select2_find_label(**args))
+      end
+    end
+
+    def select2_find_label(**args)
+      if args[:field]
+        find(%(label[for="#{args[:field]}"]))
       elsif args[:from]
         # select2 3.x copies the label into its container as an off-screen label
-        container_next_to(find('label:not(.select2-offscreen)', text: args[:from]))
+        find('label:not(.select2-offscreen)', text: args[:from])
       else
         raise ArgumentError, 'None of xpath, css, field, nor from given'
       end
     end
 
-    def container_next_to(label)
+    def select2_container_next_to(label)
       label.find(:xpath, '..').find('.select2-container')
+    end
+
+    # xpath: and css: may point at the select2 container or at an element wrapping it (such as a form field).
+    def select2_container_in(element)
+      return element if element.matches_css?('.select2-container', wait: 0)
+
+      element.find('.select2-container', match: :first)
     end
 
     def select2_version(container)
@@ -188,7 +204,7 @@ module Capybara
     end
 
     # Clicks the field until its dropdown opens. A field re-rendered under the click is found again.
-    def open_select2(container, markup, **args)
+    def select2_open(container, markup, **args)
       wait = Capybara.default_max_wait_time.to_f / OPEN_ATTEMPTS
       OPEN_ATTEMPTS.times do
         return if container.matches_css?(markup[:open], wait: 0)
@@ -196,26 +212,26 @@ module Capybara
         container.find(markup[:trigger], match: :first).click
         return if container.matches_css?(markup[:open], wait:)
       rescue Selenium::WebDriver::Error::StaleElementReferenceError
-        container = find_select2_container(**args)
+        container = select2_find_container(**args)
       end
       raise Capybara::ExpectationNotMet,
             "select2 dropdown did not open after #{OPEN_ATTEMPTS} clicks on #{markup[:trigger]}"
     end
 
     # Opens the field (typing the value into the search box with `search: true`) and returns its MARKUP.
-    def find_select2_and_open(value, **args)
-      container = find_select2_container(**args)
+    def select2_find_and_open(value, **args)
+      container = select2_find_container(**args)
       markup = MARKUP.fetch(select2_version(container))
-      open_select2(container, markup, **args)
+      select2_open(container, markup, **args)
 
       if args[:search]
         select2_body.find(markup[:search]).send_keys(value)
-        await_loaded(markup)
+        select2_await_loaded(markup)
       end
       markup
     end
 
-    def logger
+    def select2_logger
       ::Selenium::WebDriver.logger
     end
   end

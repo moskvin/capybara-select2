@@ -19,6 +19,9 @@ RSpec.describe Capybara::Select2 do
         select2('Banana', css: '.field .select2-container')
         expect(page).to have_css('#selected', exact_text: 'Banana')
 
+        select2('Apple pie', css: '.field')
+        expect(page).to have_css('#selected', exact_text: 'Apple pie')
+
         select2('Cherry', field: 'fruit')
         expect(page).to have_css('#selected', exact_text: 'Cherry')
 
@@ -90,6 +93,22 @@ RSpec.describe Capybara::Select2 do
       visit_fixture(4, :slow)
 
       expect(select2_filter('an', from: 'Fruit', search: true).map(&:text)).to eq(['Banana'])
+    end
+  end
+
+  # Applications copied 1.0.4's private helpers into their own spec support; mixed in after the gem, they used to
+  # replace its internals.
+  context 'when the spec defines helpers with the names 1.0.4 used' do
+    %i[find_select2_container open_select2 find_select2_and_open fetch_options await_select2_option].each do |name|
+      define_method(name) { |*, **| raise "#{name} from the application was called" }
+    end
+
+    it 'keeps using its own' do
+      visit_fixture(4)
+
+      select2('Banana', from: 'Fruit')
+
+      expect(page).to have_css('#selected', exact_text: 'Banana')
     end
   end
 end
