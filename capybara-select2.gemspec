@@ -1,28 +1,37 @@
 # frozen_string_literal: true
 
-require 'English'
+require_relative 'lib/capybara-select2/version'
 
-lib = File.expand_path('lib', __dir__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'capybara-select2/version'
+Gem::Specification.new do |spec|
+  spec.name = 'capybara-select'
+  spec.version = Capybara::Select2::VERSION
+  spec.authors = ['William Yeung', 'Nikolay Moskvin']
+  spec.email = ['william@tofugear.com']
 
-Gem::Specification.new do |gem|
-  gem.name          = 'capybara-select2'
-  gem.version       = Capybara::Select2::VERSION
-  gem.authors       = ['William Yeung']
-  gem.email         = ['william@tofugear.com']
-  gem.description   = 'Helper for triggering select for select2 javascript library'
-  gem.summary       = ''
-  gem.homepage      = ''
+  spec.summary = 'Capybara helpers to pick options in select2 (3.x and 4.x) fields'
+  spec.description = 'select2 and select2_filter for Capybara/RSpec, with retries for dropdowns that close or ' \
+                     're-render under the click and for results that load slowly. A fork of capybara-select2.'
+  spec.homepage = 'https://github.com/moskvin/capybara-select2'
+  spec.license = 'MIT'
 
-  gem.files         = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
-  gem.executables   = gem.files.grep(%r{^bin/}).map { |f| File.basename(f) }
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
-  gem.require_paths = ['lib']
+  # Only files committed to git, so a local scratch file can never be published.
+  spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, &:read).split("\x0").select do |f|
+    f.start_with?('lib/') || %w[Changes.md LICENSE.txt README.md capybara-select2.gemspec].include?(f)
+  end
 
-  gem.add_dependency 'capybara'
-  gem.add_dependency 'selenium-webdriver'
+  spec.require_paths = ['lib']
+  spec.required_ruby_version = '>= 3.2.0'
 
-  gem.add_development_dependency 'rspec'
-  gem.add_development_dependency 'rubocop'
+  spec.metadata = {
+    'homepage_uri' => 'https://github.com/moskvin/capybara-select2',
+    'bug_tracker_uri' => 'https://github.com/moskvin/capybara-select2/issues',
+    'changelog_uri' => 'https://github.com/moskvin/capybara-select2/blob/master/Changes.md',
+    'source_code_uri' => 'https://github.com/moskvin/capybara-select2',
+    'rubygems_mfa_required' => 'true'
+  }
+
+  spec.add_dependency 'capybara', '>= 3.0', '< 4'
+  spec.add_dependency 'rspec-core', '>= 3.0', '< 4'
+  spec.add_dependency 'rspec-expectations', '>= 3.0', '< 4'
+  spec.add_dependency 'selenium-webdriver', '>= 4.0', '< 5'
 end
