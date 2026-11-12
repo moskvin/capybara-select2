@@ -1,88 +1,70 @@
-# Capybara::Select2
+# capybara-select
 
-[![Code Climate](https://codeclimate.com/github/goodwill/capybara-select2.png)](https://codeclimate.com/github/goodwill/capybara-select2)
+[![CI](https://github.com/moskvin/capybara-select2/actions/workflows/ci.yml/badge.svg)](https://github.com/moskvin/capybara-select2/actions/workflows/ci.yml)
 
-All this gem does is something very simple- allow you to trigger select2 dropdown to select the value you want. The original select doesn't with the javascript overrides, so this new helper method does only this thing.
+Capybara helpers to pick an option in a [select2](https://select2.org) field (4.x and 3.x), for RSpec feature specs
+run with Selenium.
+
+A fork of [capybara-select2](https://github.com/goodwill/capybara-select2), released as `capybara-select` because the
+original name is taken on rubygems.org. It keeps the original's `require` name and `Capybara::Select2` module, and
+adds what flaky browser specs need:
+
+- a click that does not open the dropdown is retried, and a dropdown that closes before its option is listed (a form
+  re-rendering under the click) is opened again;
+- a field re-rendered under the click is found again with the same locator;
+- a field that never opens fails fast with `select2 dropdown did not open after 3 clicks on …`;
+- results that load slowly are waited for ("Searching…"), within `Capybara.default_max_wait_time`.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-``` ruby
-gem 'capybara-select2', group: :test
-```
-
-Or, add it into your test group
-
-``` ruby
+```ruby
 group :test do
-  gem 'capybara-select2'
-  ...
+  gem 'capybara-select', require: 'capybara-select2'
 end
 ```
 
-And then execute:
-
-``` bash
-$ bundle
-```
-
-Or install it yourself as:
-
-``` bash
-$ gem install capybara-select2
-```
-
-The gem automatically hook itself into rspec helper using Rspec.configure.
-
-If you're using capybara outside of Rspec, you may have to include the following (eg: in `features/support/env.rb` for Cucumber users):
-
-``` ruby
-include Capybara::Select2
-```
+The gem includes its helpers into every RSpec example. Outside RSpec (for example Cucumber), add
+`include Capybara::Select2` to your support file.
 
 ## Usage
 
-Just use this method inside your capybara test:
+Locate the field by its label, the `for` of its label, CSS or XPath of the select2 container:
 
-``` ruby
-select2("Dropdown Text", from: "Label of the dropdown")
+```ruby
+select2('Banana', from: 'Fruit')
+select2('Banana', field: 'fruit')
+select2('Banana', css: '#question_12 .select2-container')
+select2('Banana', xpath: container.path)
 ```
 
-or
+Options:
 
-``` ruby
-select2("Dropdown Text", xpath: "<xpath of the dropdown>")
-```
+| Option | Default | |
+|---|---|---|
+| `mode:` | `:exact_text` | `:insensitive` matches part of the text (or a Regexp), `:case_insensitive` ignores case |
+| `search: true` | | types the value into the search box first, for fields with a minimum input length |
+| `await_option: true` | | polls for the option before reading the list (`max_retries:`, default 5) |
+| `wait:` | | sleeps this many seconds before reading the list |
 
-If the select2 field has a `min_length` option (acts as a search field) specify it with:
+`select2_filter('an', from: 'Fruit', search: true)` returns the listed options without picking one.
 
-``` ruby
-select2("foo", from: "Label of the dropdown", search: true)
-```
-
-If select2 field has [tags](http://ivaynberg.github.io/select2/#tags) option you can use:
+For a field with [tags](https://select2.github.io/select2/#tags):
 
 ```ruby
 select2_tag('value', from: 'Label of input')
 ```
 
-If you want to have a delay between opening dropbox and select an element from a list please use `sleep:`
+## Development
 
-``` ruby
-select2('Item 1', from: 'Items', sleep: 0.1)
-```
+    bundle install
+    bundle exec rake          # RuboCop and the specs (headless Chrome, select2 4.0.13 and 3.5.4)
 
-If you are not sure about the full-text comparison, you can use `case_insensitive:`
+## Releasing
 
-``` ruby
-select2('body', from: "Begin\nBODY\nEnd", case_insensitive: true)
-```
+    rake "release:bump[minor]"   # bump version.rb, add a Changes.md section
+    rake release:dry_run         # checks, lint, specs, package inspection; pushes nothing
+    rake release                 # the same checks, then tag vX.Y.Z and push to rubygems.org
 
-## Contributing
+## License
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+MIT, see [LICENSE.txt](LICENSE.txt). Original author: William Yeung.

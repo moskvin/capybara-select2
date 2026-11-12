@@ -1,0 +1,48 @@
+plugins:
+  - rubocop-rake
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'pkg/**/*'
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/Documentation:
+  Enabled: false
+
+# The gem's require name predates this fork: `require 'capybara-select2'`.
+Naming/FileName:
+  Exclude:
+    - 'lib/capybara-select2.rb'
+
+Metrics/MethodLength:
+  Max: 20
+
+# Capybara::Select2 is one helper mixin included into every example.
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - 'rakelib/**/*'
+
+# Browser specs: one example walks a whole selection.
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Max: 15
+
+RSpec/DescribeClass:
+  Enabled: false

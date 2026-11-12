@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>select2 3.5.4</title>
+  <link rel="stylesheet" href="vendor/select2-3.5.4.min.css">
+  <script src="vendor/jquery-2.2.4.min.js"></script>
+  <script src="vendor/select2-3.5.4.min.js"></script>
+</head>
+<body>
+  <div class="field">
+    <label for="fruit">Fruit</label>
+    <select id="fruit">
+      <option value="">Pick one</option>
+      <option value="apple">Apple</option>
+      <option value="apple-pie">Apple pie</option>
+      <option value="banana">Banana</option>
+      <option value="cherry">Cherry</option>
+    </select>
+  </div>
+  <p id="selected"></p>
+  <script>
+    // Scenarios, picked with ?scenario=: close (the first opened dropdown closes at once), rerender (the first open
+    // replaces the field, as a lookup re-rendering a form does), slow (results load after a delay), disabled.
+    var scenario = (location.search.match(/scenario=(\w+)/) || [])[1];
+    var $fruit = $('#fruit');
+    var OPEN = 'select2-open';
+    function init() { $fruit.select2({}); }
+    if (scenario === 'disabled') $fruit.prop('disabled', true);
+    init();
+    $fruit.on('change', function () { $('#selected').text($fruit.find('option:selected').text()); });
+    if (scenario === 'close') {
+      $fruit.one(OPEN, function () { setTimeout(function () { $fruit.select2('close'); }, 0); });
+    }
+    if (scenario === 'rerender') {
+      $fruit.one(OPEN, function () {
+        setTimeout(function () { $fruit.select2('close'); $fruit.select2('destroy'); init(); }, 0);
+      });
+    }
+  </script>
+</body>
+</html>
