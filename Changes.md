@@ -18,6 +18,10 @@ original (1.0.1, 2015). Keep `require 'capybara-select2'` and `Capybara::Select2
 - Fix: `from:` with select2 3.x matched both the label and select2's off-screen copy of it.
 - Fix: `Capybara::Ambiguous` reported the number of listed options, not of matches.
 - `search: true` works with select2 3.x.
+- Private helpers are prefixed with `select2_` (`select2_find_and_open`, `select2_fetch_options`, …). They are mixed
+  into every example, so a spec helper with 1.0.4's names (`find_select2_and_open`, `open_select2`,
+  `find_select2_container`, `fetch_options`) used to replace them. Call `select2` instead of those helpers.
+- `css:` and `xpath:` may point at an element wrapping the select2 container, such as a form field.
 - Removed `lib/capybara/select2.rb`, which could not be loaded.
 - Specs against select2 4.0.13 and 3.5.4 in headless Chrome. Requires Ruby >= 3.2, Capybara 3 and
   selenium-webdriver 4. Packages only files committed to git. Release tasks in `rakelib/release.rake`.
